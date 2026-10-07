@@ -27,6 +27,12 @@ KEYWORDS = [
     "住宅", "信用管制", "平均地權", "囤房", "地權", "容積",
 ]
 
+# 國外房市新聞不收
+EXCLUDE = [
+    "澳門", "香港", "美國", "美股", "美債", "日本", "新加坡", "杜拜", "墨西哥", "大陸", "中國",
+    "北京", "上海", "深圳", "英國", "澳洲", "加拿大", "馬來西亞", "泰國", "越南", "韓國", "歐洲",
+]
+
 GOOGLE_QUERIES = [
     "房市", "房價", "實價登錄", "預售屋", "平均地權條例", "囤房稅",
     "央行 信用管制", "房貸 利率", "土地 法規 修正", "地政 內政部",
@@ -42,8 +48,8 @@ FEEDS = [
     ("內政部 草案預告", "https://www.moi.gov.tw/OpenData.aspx?SN=3148769B8A76FD66", True),
     ("中央銀行 新聞稿", "https://www.cbc.gov.tw/tw/rss-302-1.xml", True),
     # 媒體 RSS 帶有前導段落，放在 Google 新聞之前，重複時優先保留這裡的版本
-    ("經濟日報 房市", "https://money.udn.com/rssfeed/news/1001/5591", False),
-    ("ETtoday 房產雲", "https://feeds.feedburner.com/ettoday/house", False),
+    ("經濟日報", "https://money.udn.com/rssfeed/news/1001/5591", True),
+    ("ETtoday 房產雲", "https://feeds.feedburner.com/ettoday/house", True),
     ("自由時報 財經", "https://news.ltn.com.tw/rss/business.xml", True),
     ("中央社 財經", "https://feeds.feedburner.com/rsscna/finance", True),
 ] + [
@@ -172,11 +178,12 @@ def main():
 
     collected, status = [], []
     for name, url, need_filter in FEEDS:
+        label = name if name != "Google 新聞" else "Google 新聞：" + urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["q"][0]
         try:
             items = parse_feed(get(url), name)
         except Exception as e:  # 單一來源失敗不影響其他來源
-            status.append({"source": name, "ok": False, "error": str(e)[:200]})
-            print(f"[skip] {name}: {e}", file=sys.stderr)
+            status.append({"source": label, "ok": False, "error": str(e)[:200]})
+            print(f"[skip] {label}: {e}", file=sys.stderr)
             continue
         kept = 0
         for it in items:
@@ -184,20 +191,27 @@ def main():
                 continue
             if need_filter and not any(k in it["title"] + it["summary"] for k in KEYWORDS):
                 continue
+            if any(k in it["title"] for k in EXCLUDE):
+                continue
+            if it["google"] and not any(k in it["title"] for k in KEYWORDS):
+                continue  # Google 新聞只靠標題判斷，標題要含關鍵字
             key = norm(it["title"])
             if key in seen:
                 continue
             seen.add(key)
             collected.append(it)
             kept += 1
-        status.append({"source": name, "ok": True, "fetched": len(items), "kept": kept})
-        print(f"[ok] {name}: {len(items)} fetched, {kept} kept")
+        status.append({"source": label, "ok": True, "fetched": len(items), "kept": kept})
+        print(f"[ok] {label}: {len(items)} fetched, {kept} kept")
 
     for it in collected:
         if not it["google"] and not it["summary"]:
             it["summary"] = meta_description(it["link"])
 
     epoch = dt.datetime(1970, 1, 1, tzinfo=TW)
+    if len(collected) > MAX_ITEMS:
+        collected.sort(key=lambda it: (it["official"], not it["google"], it["published"] or epoch), reverse=True)
+        collected = collected[:MAX_ITEMS]
     collected.sort(key=lambda it: it["published"] or epoch, reverse=True)
     for it in collected:
         it["published"] = it["published"].astimezone(TW).strftime("%Y-%m-%d %H:%M") if it["published"] else ""
