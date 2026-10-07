@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>每日房地產資訊</title>
+<meta name="description" content="每天早上 10 點自動整理房市、土地、建築相關新聞與法規變動，可回看近 30 天。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{
+  --paper:#eef1ec; --sheet:#fbfcf9; --ink:#1f2a24; --muted:#5d6b62; --rule:#cfd7cf;
+  --seal:#b3261e; --seal-soft:#f6e3e0; --ok:#2f6b45; --ok-soft:#e1efe5; --tag:#e7ece4;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#151a17;--sheet:#1d2420;--ink:#e6ece7;--muted:#9aa89f;--rule:#34403a;--tag:#26302a;
+  --seal:#e8695d;--seal-soft:#3a2321;--ok:#7cc796;--ok-soft:#1f3326;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#151a17;--sheet:#1d2420;--ink:#e6ece7;--muted:#9aa89f;--rule:#34403a;--tag:#26302a;
+  --seal:#e8695d;--seal-soft:#3a2321;--ok:#7cc796;--ok-soft:#1f3326;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--sans);padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+h1{font:900 clamp(28px,5vw,40px)/1.15 var(--serif);margin:0;letter-spacing:.04em}
+.sub{margin:6px 0 0;color:var(--muted);font-size:14px}
+.home{font-size:14px;color:var(--ink);text-decoration:none;border:1px solid var(--rule);background:var(--sheet);padding:6px 12px;border-radius:999px;white-space:nowrap}
+.home:hover{border-color:var(--ink)}
+
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.day{flex:none;font:500 14px var(--sans);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:6px 12px;border-radius:999px;cursor:pointer;display:flex;gap:6px;align-items:baseline}
+.day .n{font:500 12px var(--mono);color:var(--muted)}
+.day[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.day[aria-pressed="true"] .n{color:inherit;opacity:.7}
+.day:focus-visible,.search:focus-visible,.item a:focus-visible,.home:focus-visible,.toggle:focus-visible{outline:3px solid var(--seal);outline-offset:2px}
+
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.search{flex:1 1 240px;font:15px var(--sans);color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:8px 12px;min-width:0}
+.toggle{font:500 14px var(--sans);border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 12px;border-radius:6px;cursor:pointer}
+.toggle[aria-pressed="true"]{background:var(--seal-soft);border-color:var(--seal);color:var(--seal)}
+.meta-line{font-size:13px;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.item{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:14px 18px;display:grid;gap:6px}
+.item a{font:600 17px/1.55 var(--serif);color:var(--ink);text-decoration:none;text-wrap:pretty}
+.item a:hover{text-decoration:underline;text-underline-offset:3px}
+.item .info{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}
+.badge{font-size:12px;font-weight:700;color:var(--seal);border:1.5px solid var(--seal);background:var(--seal-soft);border-radius:4px;padding:0 6px}
+.src{background:var(--tag);color:var(--ink);border-radius:4px;padding:0 8px}
+.item p{margin:0;font-size:14.5px;color:var(--ink);opacity:.88}
+.empty{text-align:center;color:var(--muted);padding:40px 12px;background:var(--sheet);border:1px dashed var(--rule);border-radius:6px}
+footer{font-size:12.5px;color:var(--muted);line-height:1.7}
+footer a{color:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>每日房地產資訊</h1>
+      <p class="sub">每天早上 10 點自動整理房市、土地、建築相關新聞與法規變動，點標題可看原文。</p>
+    </div>
+    <a class="home" href="../">← 地政士考試題庫</a>
+  </header>
+
+  <nav class="days" id="days" aria-label="選擇日期"></nav>
+
+  <div class="bar">
+    <input class="search" id="q" type="search" placeholder="搜尋標題或摘要，例如：預售屋、地價稅" aria-label="搜尋">
+    <button class="toggle" id="only-official" aria-pressed="false">只看政府公告</button>
+  </div>
+  <div class="meta-line" id="meta"></div>
+
+  <ul class="list" id="list" aria-live="polite"></ul>
+
+  <footer>
+    資料來源：內政部（新聞發布、行政公告、法規命令發布、草案預告）、中央銀行新聞稿、經濟日報、ETtoday、自由時報、中央社與 Google 新聞。摘要取自原文前導段落；Google 新聞項目僅列標題與媒體。內容版權屬原發布者，請以原文為準。
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let days = [], current = null, items = [], onlyOfficial = false;
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function safeUrl(u){try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:"#"}catch(e){return "#"}}
+function label(d){
+  const [y,m,dd]=d.split("-"), w="日一二三四五六"[new Date(+y,+m-1,+dd).getDay()];
+  return `${+m}/${+dd}（${w}）`;
+}
+
+async function load(){
+  try{
+    const r = await fetch("data/index.json",{cache:"no-store"});
+    if(!r.ok) throw 0;
+    days = (await r.json()).days || [];
+  }catch(e){ days = []; }
+  renderDays();
+  if(days.length) pick(days[0].date);
+  else $("#list").innerHTML = `<li class="empty">還沒有資料。第一次自動抓取完成後，這裡就會出現當天的資訊。</li>`;
+}
+
+function renderDays(){
+  $("#days").innerHTML = days.map((d,i)=>`<button class="day" data-d="${d.date}" aria-pressed="${d.date===current}">${i===0?"今日 ":""}${label(d.date)}<span class="n">${d.count}</span></button>`).join("");
+  document.querySelectorAll(".day").forEach(b=>b.onclick=()=>pick(b.dataset.d));
+}
+
+async function pick(d){
+  current = d; renderDays();
+  $("#list").innerHTML = `<li class="empty">載入中…</li>`;
+  try{
+    const r = await fetch(`data/${d}.json`,{cache:"no-store"});
+    const j = await r.json();
+    items = j.items || [];
+    $("#meta").innerHTML = `${label(d)} 更新於 <span class="num">${esc(j.updated||"")}</span>，共 <span class="num">${items.length}</span> 則`;
+  }catch(e){ items = []; $("#meta").textContent = ""; }
+  render();
+}
+
+function render(){
+  const q = $("#q").value.trim().toLowerCase();
+  const shown = items.filter(it=>(!onlyOfficial||it.official) && (!q || (it.title+" "+(it.summary||"")+" "+it.source).toLowerCase().includes(q)));
+  if(!shown.length){
+    $("#list").innerHTML = `<li class="empty">${items.length?"沒有符合條件的項目。":"這一天沒有收錄到資訊。"}</li>`;
+    return;
+  }
+  $("#list").innerHTML = shown.map(it=>`<li class="item">
+      <a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.title)}</a>
+      <div class="info">${it.official?'<span class="badge">政府</span>':""}<span class="src">${esc(it.source)}</span>${it.published?`<span class="num">${esc(it.published)}</span>`:""}</div>
+      ${it.summary?`<p>${esc(it.summary)}</p>`:""}
+    </li>`).join("");
+}
+
+$("#q").oninput = render;
+$("#only-official").onclick = e => { onlyOfficial = !onlyOfficial; e.currentTarget.setAttribute("aria-pressed", onlyOfficial); render(); };
+load();
+</script>
+</body>
+</html>
