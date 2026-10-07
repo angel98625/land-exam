@@ -17,6 +17,7 @@ TW = dt.timezone(dt.timedelta(hours=8))
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "news" / "data"
 KEEP_DAYS = 30
+MAX_ITEMS = 120  # 每天最多收錄則數，超過時優先保留政府公告與帶摘要的媒體新聞
 WINDOW_HOURS = 36  # 只收最近 36 小時內發布的項目
 UA = "Mozilla/5.0 (compatible; land-exam-news/1.0; +https://angel98625.github.io/land-exam/news/)"
 
