@@ -23,7 +23,7 @@ UA = "Mozilla/5.0 (compatible; land-exam-news/1.0; +https://angel98625.github.io
 
 # 內政部、央行等綜合來源需用關鍵字過濾，只留跟土地、房市、建築有關的
 KEYWORDS = [
-    "房", "不動產", "土地", "地政", "地價", "地籍", "登記", "實價", "預售", "租賃", "租屋",
+    "房", "不動產", "土地", "地政", "地價", "地籍", "實價", "預售", "租賃", "租屋",
     "建築", "建物", "營建", "都市", "都更", "國土", "徵收", "重劃", "公設", "社宅", "社會住宅",
     "住宅", "信用管制", "平均地權", "囤房", "地權", "容積",
 ]
@@ -32,7 +32,9 @@ KEYWORDS = [
 EXCLUDE = [
     "澳門", "香港", "美國", "美股", "美債", "日本", "新加坡", "杜拜", "墨西哥", "大陸", "中國",
     "北京", "上海", "深圳", "英國", "澳洲", "加拿大", "馬來西亞", "泰國", "越南", "韓國", "歐洲",
+    "紐約", "倫敦", "東京", "樓花", "峇里",
 ]
+EXCLUDE_SOURCES = ["香港", "澳門", "巴士的報", "大紀元", "新唐人"]
 
 GOOGLE_QUERIES = [
     "房市", "房價", "實價登錄", "預售屋", "平均地權條例", "囤房稅",
@@ -161,6 +163,18 @@ def norm(title):
     return re.sub(r"[\s\W_]+", "", title).lower()
 
 
+def bigrams(title):
+    t = norm(title)
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def similar(a, b):
+    """兩個標題的字元雙連組重疊率，用來合併不同媒體報導同一則新聞。"""
+    if not a or not b:
+        return 0
+    return len(a & b) / min(len(a), len(b))
+
+
 def main():
     now = dt.datetime.now(TW)
     today = now.strftime("%Y-%m-%d")
@@ -196,10 +210,19 @@ def main():
                 continue
             if it["google"] and not any(k in it["title"] for k in KEYWORDS):
                 continue  # Google 新聞只靠標題判斷，標題要含關鍵字
+            if any(k in it["source"] for k in EXCLUDE_SOURCES):
+                continue
             key = norm(it["title"])
             if key in seen:
                 continue
+            bg = bigrams(it["title"])
+            dup = next((c for c in collected if similar(bg, c["_bg"]) >= 0.38), None)
+            if dup:
+                # 同一事件已由其他來源收錄（先收錄者優先：政府、媒體 RSS、Google 新聞），只計數
+                dup["related"] = dup.get("related", 0) + 1
+                continue
             seen.add(key)
+            it["_bg"] = bg
             collected.append(it)
             kept += 1
         status.append({"source": label, "ok": True, "fetched": len(items), "kept": kept})
@@ -215,6 +238,7 @@ def main():
         collected = collected[:MAX_ITEMS]
     collected.sort(key=lambda it: it["published"] or epoch, reverse=True)
     for it in collected:
+        del it["_bg"], it["google"]
         it["published"] = it["published"].astimezone(TW).strftime("%Y-%m-%d %H:%M") if it["published"] else ""
 
     (DATA / f"{today}.json").write_text(json.dumps({

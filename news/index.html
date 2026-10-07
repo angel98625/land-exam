@@ -132,7 +132,7 @@ function render(){
   }
   $("#list").innerHTML = shown.map(it=>`<li class="item">
       <a href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener">${esc(it.title)}</a>
-      <div class="info">${it.official?'<span class="badge">政府</span>':""}<span class="src">${esc(it.source)}</span>${it.published?`<span class="num">${esc(it.published)}</span>`:""}</div>
+      <div class="info">${it.official?'<span class="badge">政府</span>':""}<span class="src">${esc(it.source)}</span>${it.published?`<span class="num">${esc(it.published)}</span>`:""}${it.related?`<span>另有 ${+it.related} 則相關報導</span>`:""}</div>
       ${it.summary?`<p>${esc(it.summary)}</p>`:""}
     </li>`).join("");
 }
