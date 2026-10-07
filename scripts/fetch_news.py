@@ -28,6 +28,11 @@ KEYWORDS = [
     "住宅", "信用管制", "平均地權", "囤房", "地權", "容積",
 ]
 
+# 標題判斷用，不含單字「房」以免收到訂房、廚房之類的新聞
+TITLE_KEYWORDS = [k for k in KEYWORDS if k != "房"] + [
+    "房市", "房價", "房貸", "房產", "房屋", "房地", "房東", "房客", "買房", "購屋", "屋主", "宅",
+]
+
 # 國外房市新聞不收
 EXCLUDE = [
     "澳門", "香港", "美國", "美股", "美債", "日本", "新加坡", "杜拜", "墨西哥", "大陸", "中國",
@@ -204,11 +209,12 @@ def main():
         for it in items:
             if it["published"] and now - it["published"] > dt.timedelta(hours=WINDOW_HOURS):
                 continue
-            if need_filter and not any(k in it["title"] + it["summary"] for k in KEYWORDS):
+            if need_filter and not any(k in it["title"] for k in TITLE_KEYWORDS) \
+                    and not any(k in it["summary"] for k in KEYWORDS):
                 continue
             if any(k in it["title"] for k in EXCLUDE):
                 continue
-            if it["google"] and not any(k in it["title"] for k in KEYWORDS):
+            if it["google"] and not any(k in it["title"] for k in TITLE_KEYWORDS):
                 continue  # Google 新聞只靠標題判斷，標題要含關鍵字
             if any(k in it["source"] for k in EXCLUDE_SOURCES):
                 continue
